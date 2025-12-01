@@ -137,9 +137,13 @@ void AUntitledHorrorGameCharacter::Look(const FInputActionValue& Value)
 
 void AUntitledHorrorGameCharacter::PerformInteract()
 {
+	// DEBUG: Print to screen when button is pressed
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, TEXT("E Key Was Pressed!"));
+
 	// Define the Trace (Raycast)
 	FVector Start = FollowCamera->GetComponentLocation();
-	FVector End = Start + (FollowCamera->GetForwardVector() * 250.0f); // 2.5 meters reach
+	FVector End = Start + (FollowCamera->GetForwardVector() * 1500.0f); // 2.5 meters reach
 
 	FHitResult HitResult;
 	FCollisionQueryParams Params;
@@ -147,18 +151,30 @@ void AUntitledHorrorGameCharacter::PerformInteract()
 
 	// Perform Trace
 	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, Params);
-
+	DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 2.0f);
 	if (bHit && HitResult.GetActor())
 	{
-		// Debug Line so you can see what you are doing
-		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 2.0f);
+		// LOG 1: What did we hit?
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("HIT: %s"), *HitResult.GetActor()->GetName()));
 
-		// Check if the actor implements our Interface
+		// 3. Check Interface
 		if (HitResult.GetActor()->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
 		{
-			// Ask Server to interact
+			// LOG 2: Interface found!
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Interface Found! Sending to Server..."));
+
 			ServerInteract(HitResult.GetActor());
 		}
+		else
+		{
+			// LOG 3: Interface MISSING
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("FAIL: This object does not have the Interface!"));
+		}
+	}
+	else
+	{
+		// LOG 4: Missed everything
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("FAIL: Trace hit nothing."));
 	}
 }
 

@@ -8,7 +8,7 @@
 #include "PickupActor.generated.h"
 
 UCLASS()
-class UNTITLEDHORRORGAME_API APickupActor : public AActor
+class UNTITLEDHORRORGAME_API APickupActor : public AActor, public IInteractInterface
 {
 	GENERATED_BODY()
 	
@@ -25,5 +25,5 @@ protected:
 
 public:	
 	// Called every frame
-	virtual void Interact_Implementation(APawn* InstigatorPawn);
+	virtual void Interact_Implementation(APawn* InstigatorPawn) override;
 };

@@ -19,6 +19,8 @@ APickupActor::APickupActor()
     // Physics settings defaults
     MeshComp->SetSimulatePhysics(true);
     MeshComp->SetCollisionProfileName(TEXT("PhysicsActor"));
+
+    MeshComp->SetMobility(EComponentMobility::Movable);
 }
 
 // Called when the game starts or when spawned
@@ -37,6 +39,8 @@ void APickupActor::Interact_Implementation(APawn* InstigatorPawn)
         {
             // Disable Physics (or it will fight the hand)
             MeshComp->SetSimulatePhysics(false);
+
+            MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
             // Attach to the Character's Mesh, specifically the Right Hand
             USceneComponent* PawnMesh = InstigatorPawn->FindComponentByClass<USkeletalMeshComponent>();

@@ -23,7 +23,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Componets")
 	UStaticMeshComponent* MeshComp;
 
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentHolder)
+	APawn* CurrentHolder;
+
+	UFUNCTION()
+	void OnRep_CurrentHolder();
+
 public:	
 	// Called every frame
 	virtual void Interact_Implementation(APawn* InstigatorPawn) override;
+	virtual void Drop_Implementation(APawn* InstigatorPawn) override;
 };

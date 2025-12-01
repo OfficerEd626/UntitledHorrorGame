@@ -67,9 +67,21 @@ protected:
 	// The Input function (Called on Client)
 	void PerformInteract();
 
+	// Variable to remember what we are holding
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	AActor* CurrentItem;
+
+	// Input Function
+    void PerformDrop();
+
+    // Server RPC
+    UFUNCTION(Server, Reliable)
+    void ServerDrop();
+
 	// The Server RPC (Sent to Server)
 	UFUNCTION(Server, Reliable)
 	void ServerInteract(AActor* HitActor);
+
 
 public:
 	/** Returns CameraBoom subobject **/

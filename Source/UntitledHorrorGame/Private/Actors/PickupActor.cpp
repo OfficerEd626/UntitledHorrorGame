@@ -32,25 +32,69 @@ void APickupActor::BeginPlay()
 
 void APickupActor::Interact_Implementation(APawn* InstigatorPawn)
 {
-    // Only the Server can handle attachment repliction
     if (HasAuthority())
     {
-        if (InstigatorPawn)
+        // 1. Set the Holder (Triggers OnRep on Client)
+        CurrentHolder = InstigatorPawn;
+        OnRep_CurrentHolder(); // Run manually on Server
+
+        // Note: We don't even need the Attach code here anymore 
+        // because OnRep_CurrentHolder does it for us!
+    }
+}
+
+void APickupActor::OnRep_CurrentHolder()
+{
+    if (CurrentHolder)
+    {
+        // --- PICKED UP ---
+        // 1. Stop Physics immediately
+        MeshComp->SetSimulatePhysics(false);
+        MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+        // 2. FORCE ATTACHMENT ON CLIENT (The Fix)
+        // We don't wait for the server. We snap it ourselves right now.
+        USceneComponent* PawnMesh = CurrentHolder->FindComponentByClass<USkeletalMeshComponent>();
+        if (PawnMesh)
         {
-            // Disable Physics (or it will fight the hand)
-            MeshComp->SetSimulatePhysics(false);
-
-            MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-            // Attach to the Character's Mesh, specifically the Right Hand
-            USceneComponent* PawnMesh = InstigatorPawn->FindComponentByClass<USkeletalMeshComponent>();
-
-            if (PawnMesh)
-            {
-                // Snap to target keeps the object tight in hand
-                FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
-                this->AttachToComponent(PawnMesh, AttachRules, FName("hand_r"));
-            }
+            FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
+            this->AttachToComponent(PawnMesh, AttachRules, FName("hand_r"));
         }
     }
+    else
+    {
+        // --- DROPPED ---
+        // 1. Detach
+        DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+        // 2. Restart Physics
+        MeshComp->SetSimulatePhysics(true);
+        MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    }
+}
+
+void APickupActor::Drop_Implementation(APawn* InstigatorPawn)
+{
+    if (HasAuthority())
+    {
+        // 1. Clear the Holder
+        CurrentHolder = nullptr;
+        OnRep_CurrentHolder(); // Run manually on Server to detach
+
+        // 2. The Toss
+        if (InstigatorPawn)
+        {
+            FVector Forward = InstigatorPawn->GetActorForwardVector();
+            FVector ThrowImpulse = (Forward * 500.0f) + FVector(0.0f, 0.0f, 200.0f);
+            MeshComp->AddImpulse(ThrowImpulse, NAME_None, true);
+        }
+    }
+}
+
+void APickupActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    // Replicate the Pawn reference instead of the bool
+    DOREPLIFETIME(APickupActor, CurrentHolder);
 }

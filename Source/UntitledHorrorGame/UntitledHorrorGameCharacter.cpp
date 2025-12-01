@@ -25,11 +25,11 @@ AUntitledHorrorGameCharacter::AUntitledHorrorGameCharacter()
 		
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = true;
 	bUseControllerRotationRoll = false;
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
@@ -43,14 +43,25 @@ AUntitledHorrorGameCharacter::AUntitledHorrorGameCharacter()
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
-	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
+
+	// Attach to the Capsule (Root) instead of the Mesh, to prevent "Head Bob" motion sickness
+	CameraBoom->SetupAttachment(GetCapsuleComponent());
+
+	// Position it at Eye Height (Z=65) and slightly forward (X=20) to clear the face mesh
+	CameraBoom->SetRelativeLocation(FVector(20.0f, 0.0f, 65.0f));
+
+	// Set Length to 0 for First Person
+	CameraBoom->TargetArmLength = 0.0f;
+
+	// The Boom rotates with the mouse
+	CameraBoom->bUsePawnControlRotation = true;
 
 	// Create a follow camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
-	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+
+	// The Camera doesn't need to rotate, the Boom handles it
+	FollowCamera->bUsePawnControlRotation = false;
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -70,6 +81,7 @@ void AUntitledHorrorGameCharacter::SetupPlayerInputComponent(UInputComponent* Pl
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AUntitledHorrorGameCharacter::PerformInteract);
+	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &AUntitledHorrorGameCharacter::PerformDrop);
 
 	// Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
@@ -178,12 +190,39 @@ void AUntitledHorrorGameCharacter::PerformInteract()
 	}
 }
 
+void AUntitledHorrorGameCharacter::PerformDrop()
+{
+	// Ask Server to drop
+	ServerDrop();
+}
+
+void AUntitledHorrorGameCharacter::ServerDrop_Implementation()
+{
+	if (CurrentItem)
+	{
+		// Tell the item to detach and fall
+		IInteractInterface::Execute_Drop(CurrentItem, this);
+
+		// Forget the item so we can pick up a new one
+		CurrentItem = nullptr;
+	}
+}
+
 // The implementation of the RPC
 void AUntitledHorrorGameCharacter::ServerInteract_Implementation(AActor* HitActor)
 {
 	if (HitActor)
 	{
-		// Execute the Interface function on the object
+		// If we are already holding something, ignore the new pickup (or drop the old one first)
+		if (CurrentItem)
+		{
+			return;
+		}
+
+		// Save the item!
+		CurrentItem = HitActor;
+
+		// Execute the Interface
 		IInteractInterface::Execute_Interact(HitActor, this);
 	}
 }

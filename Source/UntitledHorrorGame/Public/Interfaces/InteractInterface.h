@@ -25,4 +25,7 @@ public:
 	// This is the function other classes will implement
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
 	void Interact(APawn* InstigatorPawn);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
+	void Drop(APawn* InstigatorPawn);
 };

@@ -67,6 +67,10 @@ void AUntitledHorrorGameCharacter::BeginPlay()
 
 void AUntitledHorrorGameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AUntitledHorrorGameCharacter::PerformInteract);
+
 	// Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
 	{

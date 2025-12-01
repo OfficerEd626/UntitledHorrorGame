@@ -10,6 +10,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Interfaces/InteractInterface.h"
+#include "DrawDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -126,5 +128,42 @@ void AUntitledHorrorGameCharacter::Look(const FInputActionValue& Value)
 		// add yaw and pitch input to controller
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
+	}
+}
+
+void AUntitledHorrorGameCharacter::PerformInteract()
+{
+	// Define the Trace (Raycast)
+	FVector Start = FollowCamera->GetComponentLocation();
+	FVector End = Start + (FollowCamera->GetForwardVector() * 250.0f); // 2.5 meters reach
+
+	FHitResult HitResult;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	// Perform Trace
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, Params);
+
+	if (bHit && HitResult.GetActor())
+	{
+		// Debug Line so you can see what you are doing
+		DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 2.0f);
+
+		// Check if the actor implements our Interface
+		if (HitResult.GetActor()->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+		{
+			// Ask Server to interact
+			ServerInteract(HitResult.GetActor());
+		}
+	}
+}
+
+// The implementation of the RPC
+void AUntitledHorrorGameCharacter::ServerInteract_Implementation(AActor* HitActor)
+{
+	if (HitActor)
+	{
+		// Execute the Interface function on the object
+		IInteractInterface::Execute_Interact(HitActor, this);
 	}
 }

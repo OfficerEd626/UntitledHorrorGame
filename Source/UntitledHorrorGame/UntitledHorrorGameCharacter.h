@@ -64,6 +64,13 @@ protected:
 	// To add mapping context
 	virtual void BeginPlay();
 
+	// The Input function (Called on Client)
+	void PerformInteract();
+
+	// The Server RPC (Sent to Server)
+	UFUNCTION(Server, Reliable)
+	void ServerInteract(AActor* HitActor);
+
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

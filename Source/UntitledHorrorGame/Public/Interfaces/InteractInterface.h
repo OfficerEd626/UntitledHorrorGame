@@ -23,7 +23,6 @@ class UNTITLEDHORRORGAME_API IInteractInterface
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	// This is the function other classes will implement
-	// BlueprintNativeEvent allows you to override this in BP later if you really want to
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Interaction")
 	void Interact(APawn* InstigatorPawn);
 };
